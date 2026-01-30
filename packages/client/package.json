@@ -1,0 +1,19 @@
+{
+  "name": "@voidworks/client",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@voidworks/common": "*",
+    "howler": "^2.2.4",
+    "pixi.js": "^7.3.2",
+    "protobufjs": "^7.2.5"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

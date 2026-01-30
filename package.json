@@ -1,0 +1,18 @@
+{
+  "name": "voidworks-root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev --workspace=@voidworks/server",
+    "dev:client": "npm run dev --workspace=@voidworks/client",
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "npm run build --workspaces",
+    "clean": "rm -rf node_modules packages/*/node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "ws": "^8.19.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@voidworks/common",
+  "version": "0.0.1",
+  "main": "index.js",
+  "dependencies": {
+    "protobufjs": "^8.0.0"
+  }
+}

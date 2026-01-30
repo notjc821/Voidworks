@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package voidworks;
+
+message ClientPacket {
+    oneof packet {
+        Handshake handshake = 1;
+        InputData input = 2;
+        BuildRequest build = 3;
+    }
+}
+
+message ServerPacket {
+    oneof packet {
+        // [重點] 這裡是 WelcomePacket，絕對不能是 HandshakeResponse
+        WelcomePacket welcome = 1; 
+        MapData mapData = 2;
+        WorldState worldState = 3;
+        InventoryUpdate inventory = 4;
+    }
+}
+
+message Handshake {
+    string name = 1;
+}
+
+// [重點] 這裡也必須是 WelcomePacket
+message WelcomePacket {
+    string playerId = 1;
+}
+
+message InputData {
+    bool up = 1;
+    bool down = 2;
+    bool left = 3;
+    bool right = 4;
+    float mouseAngle = 5;
+    bool isShooting = 6;
+}
+
+message BuildRequest {
+    int32 type = 1;
+    float x = 2;
+    float y = 3;
+    float angle = 4;
+}
+
+message MapData {
+    int32 width = 1;
+    int32 height = 2;
+    repeated int32 tiles = 3;
+}
+
+message WorldState {
+    float time = 1;
+    repeated EntityData entities = 2;
+}
+
+message EntityData {
+    string id = 1;
+    int32 type = 2;
+    float x = 3;
+    float y = 4;
+    float angle = 5;
+    float health = 6;
+    float maxHealth = 7;
+    string name = 8;
+    // [重點] 必須包含這兩行
+    float oxygen = 9;
+    float maxOxygen = 10;
+}
+
+message InventoryUpdate {
+    map<int32, int32> items = 1;
+}
