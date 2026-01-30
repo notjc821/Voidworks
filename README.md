@@ -44,6 +44,8 @@ This project is managed using **npm workspaces** and is divided into three main 
     npm install
     ```
 
+3.  **Enter your local MySQL password at \voidworks\packages\server\.env**
+
 ---------
 
 ## 🎮 Running the Game
