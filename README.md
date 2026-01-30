@@ -1,9 +1,10 @@
 # 🚀 VoidWorks
 
-**Version:** v0.10.0 (Alpha)  
-**Genre:** Multiplayer Space Survival Sandbox
+![Version](https://img.shields.io/badge/version-v0.10.0_(Alpha)-blue) ![Genre](https://img.shields.io/badge/Genre-Multiplayer_Space_Survival_Sandbox-purple)
 
-VoidWorks is a browser-based multiplayer online game where players explore, gather resources, build bases, and strive to survive in an infinitely generated space. This project is developed using a **Monorepo** architecture, with the frontend and backend sharing core logic and communication protocols.
+**VoidWorks** is a browser-based multiplayer online game. Players explore, gather resources, build bases, and strive to survive in an infinitely generated space.
+
+This project is developed using a **Monorepo** architecture, with the frontend and backend sharing core logic and communication protocols for efficient collaboration.
 
 ---
 
@@ -11,116 +12,139 @@ VoidWorks is a browser-based multiplayer online game where players explore, gath
 
 This project is managed using **npm workspaces** and is divided into three main modules:
 
-### 1. `packages/common` (Core Shared Layer)
-* **Purpose:** Defines constants, data structures, and communication protocols shared between the frontend and backend.
-* **Technology:** Google Protocol Buffers (`.proto`), JavaScript.
-* **Key File:** `protocol/voidworks.proto` (Defines all packet formats).
-
-### 2. `packages/server` (Game Server)
-* **Purpose:** Handles physics simulation, game logic, map generation, and broadcasting game state.
-* **Technology:** Node.js, **uWebSockets.js** (High-performance WebSocket), **p2.js** (Physics Engine), **simplex-noise** (Map Generation).
-* **Key Feature:** Authoritative Server architecture. All logical computations are performed on the server.
-
-### 3. `packages/client` (Game Client)
-* **Purpose:** Responsible for rendering graphics, receiving user input, and playing sound effects.
-* **Technology:** Vite, **Pixi.js** (WebGL Rendering), WebSocket.
-* **Key Features:** Uses interpolation for smooth movement and includes a UI management system.
+| Module | Path | Description | Key Technologies |
+| :--- | :--- | :--- | :--- |
+| **Shared Core** | `packages/common` | Defines constants, data structures, and communication protocols shared between frontend and backend. | JS, **Google Protocol Buffers** |
+| **Game Server** | `packages/server` | Handles physics, game logic, map generation, and state broadcasting.<br>**Authoritative Server** architecture. | Node.js, **uWebSockets.js**, p2.js, simplex-noise |
+| **Game Client** | `packages/client` | Responsible for graphics rendering, user input, and audio.<br>Features interpolation and UI systems. | Vite, **Pixi.js (WebGL)**, WebSocket |
 
 ---
 
 ## ⚡ Quick Start
 
-### Prerequisites
+### 📋 Prerequisites
 * **Node.js:** v18.0.0 or higher
-* **npm:** v7.0.0 or higher (Supports Workspaces)
+* **npm:** v7.0.0 or higher (Must support Workspaces)
 
-### Installation Steps
+### ⚙️ Installation Steps
 
 1.  **Clone the Repository**
 
-2.  **Install Dependencies (Run once at the project root)**
-    This will automatically install all dependencies for the client, server, and common packages.
+2.  **Install Dependencies** (Run at the project root)
+    This will automatically install dependencies for client, server, and common packages.
     ```bash
     npm install
     ```
 
-3.  **Enter your local MySQL password at \voidworks\packages\server\.env**
+3.  **Configure Environment Variables (Important!)**
+    Enter your local MySQL password in the following file:
+    > File Path: `packages/server/.env`
 
----------
+---
 
 ## 🎮 Running the Game
 
-This project uses a **Monorepo** architecture, requiring both the **Server** and **Client** to be running simultaneously to play. Ensure you are in the project root directory (`voidworks/`).
+Due to the **Monorepo** architecture, both the **Server** and **Client** must run simultaneously. Ensure you are in the project root directory (`voidworks/`).
 
-### Option 1: One-Command Start (Recommended) 🚀
-Use `concurrently` to launch both the frontend and backend at once. Ideal for general development and gameplay.
+### Option 1: One-Command Start (Recommended 🚀)
+Use `concurrently` to launch both frontend and backend. Ideal for general development and gameplay.
+
 ```bash
 npm run dev
 ```
-Terminal Output: You will see logs prefixed with [SERVER] (blue) and [CLIENT] (magenta) appear simultaneously.
-Game URL: Once launched, open your browser and navigate to http://localhost:5173.
 
-### Option 2: Separate Startup (For Debugging) 🛠️
-If you wish to monitor logs from the frontend and backend separately, open two terminal windows and run each command individually.
+* **Terminal Output:** You will see logs prefixed with `[SERVER]` (blue) and `[CLIENT]` (magenta) appear simultaneously.
+* **Game URL:** Once launched, open [http://localhost:5173](https://www.google.com/search?q=http://localhost:5173) in your browser.
 
-Terminal 1: Start the Server
+### Option 2: Separate Startup (For Debugging 🛠️)
 
+If you wish to monitor logs separately, open two terminal windows:
+
+**Terminal 1: Start Server**
+
+```bash
 npm run dev:server
-The server will start at ws://localhost:8080.
-It handles physics simulation and game logic.
 
-Terminal 2: Start the Client
+```
 
+> Server starts at `ws://localhost:8080` (Physics & Logic).
+
+**Terminal 2: Start Client**
+
+```bash
 npm run dev:client
-The client will start at http://localhost:5173.
-It handles graphics rendering and user input.
 
-Troubleshooting
-Q1: npm run dev gives a command not found error?
-A1: Ensure you have run npm install. This will automatically install the concurrently package.
+```
 
-Q2: Seeing [SERVER] Address already in use?
-A2: This means the server port (8080) is already occupied. You may already have a server running in another terminal. Please close it first.
+> Client starts at `http://localhost:5173` (Rendering & Input).
+
+---
 
 ## 🕹️ Controls
-W, A, S, D	Move character
-Mouse Cursor	Control aim and shooting direction
-Left Mouse Button	Shoot / Mine asteroids
-B	Build a wall (Requires Stone)
-1 - 5	Switch hotbar slots
 
-## 🌟 Current Features (Phase 10)
-Survival System:
-Oxygen (O2): Depletes over time. Health decreases when O2 reaches zero.
-Health (HP): Decreases when taking damage or suffocating. Player respawns upon death.
-UI: Dynamic HP/O2 progress bars displayed in the top-left corner.
+| Key | Function |
+| --- | --- |
+| **W, A, S, D** | Move Character |
+| **Mouse Cursor** | Aim / Shooting Direction |
+| **Left Click** | Shoot / Mine Asteroids |
+| **B** | Build Wall (Requires Stone) |
+| **1 - 5** | Switch Hotbar Slots |
 
-Procedural Map:
-Infinite terrain generated using Simplex Noise.
-Contains Wall and Asteroid clusters.
+---
 
-Gathering & Building:
-Mine Copper Ore and Iron/Stone Asteroids.
-Use gathered resources to build defensive walls.
+## 🌟 Current Features 
 
-High-Performance Synchronization:
-Supports synchronization of hundreds of entities (packet size limit optimized).
-Binary transmission using Protocol Buffers.
+### ❤️ Survival System
+
+* **Oxygen (O2):** Depletes over time. Health decreases when O2 hits zero.
+* **Health (HP):** Decreases on damage or suffocation. Respawn on death.
+* **UI:** Dynamic HP/O2 bars in the top-left corner.
+
+### 🗺️ Procedural Map
+
+* Infinite terrain generated using **Simplex Noise**.
+* Contains clusters of walls and asteroids.
+
+### ⛏️ Gathering & Building
+
+* Mine **Copper Ore** and **Iron/Stone Asteroids**.
+* Use gathered resources to build defensive walls.
+
+### 🚀 High-Performance Synchronization
+
+* Supports hundreds of concurrent entities (Optimized packet size).
+* Binary transmission using **Protocol Buffers**.
+
+---
 
 ## 🛠️ Development Workflow
-Modifying the Communication Protocol (.proto)
-If you modify packages/common/protocol/voidworks.proto, you must regenerate the JavaScript definition files.
-Important: After modifying the Protocol, clear your browser cache (Hard Reload). Otherwise, the client may use outdated definitions, causing decoding errors.
 
-Collaboration Rules
-Main Branch: Maintains a stable, always-runnable state.
-Feature Branch: Create a new branch for new features (e.g., feature/add-inventory-ui).
-Pull Request: Submit a PR for code review upon completion.
+### Modifying Communication Protocols (.proto)
 
-## Troubleshooting
+If you modify `packages/common/protocol/voidworks.proto`, you must regenerate the JavaScript definition files.
+> **⚠️ Important:** After modifying the Protocol, perform a **Hard Reload** in your browser. Otherwise, the client may use outdated definitions, causing decoding errors.
 
-Q1: The screen is black (void) upon entering the game?
-A1: This is usually caused by the browser caching old .proto files. Press F12 -> Right-click the refresh button -> Select "Empty Cache and Hard Reload".
+### Collaboration Rules
 
-Q2: Cannot see other players or asteroids?
-A2: Check if maxPayloadLength in packages/server/src/Server.js is set to 1024 * 1024 (1MB).
+* **Main Branch:** Maintains a stable, always-runnable state.
+* **Feature Branch:** Create new branches for features (e.g., `feature/add-inventory-ui`).
+* **Pull Request:** Submit a PR for code review upon completion.
+
+---
+
+## ❓ Troubleshooting
+
+**Q1: Black screen (void) upon entering the game?**
+> **A1:** Usually caused by the browser caching old `.proto` files.
+> * Press `F12` to open DevTools.
+> * Right-click the Refresh button.
+> * Select **"Empty Cache and Hard Reload"**.
+
+**Q2: Cannot see other players or asteroids?**
+> **A2:** Check `maxPayloadLength` in `packages/server/src/Server.js` and ensure it is set to `1024 * 1024` (1MB).
+
+**Q3: `npm run dev` error: command not found?**
+> **A3:** Ensure you have run `npm install`. This automatically installs the required `concurrently` package.
+
+**Q4: `[SERVER] Address already in use`?**
+> **A4:** The server port (8080) is occupied. You likely have another server instance running in a different terminal. Close it first.
