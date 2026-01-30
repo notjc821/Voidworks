@@ -100,7 +100,6 @@ class Renderer {
 
       // UI 與 預覽層 必須跟隨世界移動
       this.uiContainer.position.copyFrom(this.worldContainer.position);
-      this.previewContainer.position.copyFrom(this.worldContainer.position);
 
       // 背景視差滾動 (速度較慢，營造深度感)
       if (this.tilingStars) {
@@ -109,41 +108,27 @@ class Renderer {
       }
 
       // 3. 更新建造鬼影位置
-      if (this.ghostSprite.visible && playerSprite) {
+      if (this.ghostSprite.visible) {
         const input = this.gameClient.input;
-        const screenW = this.app.screen.width;
-        const screenH = this.app.screen.height;
+        const TILE = Constants.TILE_SIZE; // 32
 
-        // 1. 算出滑鼠相對於「螢幕中心」的距離
-        const distX = input.mouseScreenX - (screenW / 2);
-        const distY = input.mouseScreenY - (screenH / 2);
+        // 1. 取得滑鼠在「螢幕」上的點
+        const globalMouse = new PIXI.Point(input.mouseScreenX, input.mouseScreenY);
 
-        // 2. 推算出滑鼠在「世界座標」的真實位置 (玩家位置 + 滑鼠偏移)
-        const worldX = playerSprite.x + distX;
-        const worldY = playerSprite.y + distY;
+        // 2. 將螢幕座標轉換為「遊戲世界 (worldContainer)」內的座標
+        // 這會自動處理攝影機移動、縮放等所有問題
+        const worldPos = this.worldContainer.toLocal(globalMouse);
 
-        // 3. 網格吸附 (Snap to Grid)
-        // Math.round(val / 32) * 32 會找出最近的格子左上角 (0, 32, 64...)
-        const TILE = Constants.TILE_SIZE;
-        const snapX = Math.round(worldX / TILE) * TILE;
-        const snapY = Math.round(worldY / TILE) * TILE;
+        // 3. 網格索引計算 (Grid Index Calculation)
+        // 因為地圖被往左上推了 mapOffsetX，所以我們要加回來才能算出它是第幾格
+        // Math.floor 是關鍵，確保在格子的任何位置都選到同一格
+        const col = Math.floor((worldPos.x + this.mapOffsetX) / TILE);
+        const row = Math.floor((worldPos.y + this.mapOffsetY) / TILE);
 
-        // 4. 校正中心點
-        // 因為地板是左上角對齊，中心點在 +16 的位置
-        // 我們的鬼影是中心對齊，所以要把它移到 +16 的位置
-        this.ghostSprite.x = snapX + (TILE / 2); // 加上半格
-        this.ghostSprite.y = snapY + (TILE / 2); // 加上半格
-
-        // [可選] 變色邏輯：如果距離太遠顯示紅色
-        const distToPlayer = Math.sqrt(distX*distX + distY*distY);
-        if (distToPlayer > 150) this.ghostSprite.tint = 0xFF0000;
-        else this.ghostSprite.tint = 0x00FF00;
-      }
-
-      // 4. 更新 UI 數據 (血量/氧氣)
-      // 使用 dataRef 獲取最新數據，避免依賴可能過時的 sprite 屬性
-      if (playerSprite.dataRef) {
-          UIManager.updateStats(this.app.ticker.FPS, playerSprite.dataRef);
+        // 4. 轉回世界座標 (Snap to Center)
+        // 公式：(格子索引 * 格子大小) - 地圖偏移 + 半格大小
+        this.ghostSprite.x = (col * TILE) - this.mapOffsetX + (TILE / 2);
+        this.ghostSprite.y = (row * TILE) - this.mapOffsetY + (TILE / 2);
       }
     }
   }
