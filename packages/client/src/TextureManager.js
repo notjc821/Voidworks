@@ -3,45 +3,37 @@ import * as PIXI from 'pixi.js';
 class TextureManager {
   constructor() {
     this.textures = new Map();
-    this.defaultTexture = PIXI.Texture.WHITE; // Fallback
+    
+    PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
+    PIXI.BaseTexture.defaultOptions.mipmap = PIXI.MIPMAP_MODES.OFF;
+    PIXI.BaseTexture.defaultOptions.wrapMode = PIXI.WRAP_MODES.CLAMP;
   }
 
-  load() {
-    return new Promise((resolve, reject) => {
-      // 定義要加載的資源列表
-      // key: 程式中引用的名稱, value: 檔案路徑
-      const assets = {
-        'player': '/assets/images/player.png',
-        'wall': '/assets/images/wall.png',
-        'asteroid': '/assets/images/asteroid.png',
-        'rock': '/assets/images/rock.png',
-        // 如果你有背景圖，也可以加在這裡
-        // 'space_bg': '/assets/images/background.png' 
-      };
+  async load() {
+    const assets = [
+      { name: 'player', url: 'assets/images/player.png' },
+      { name: 'rock', url: 'assets/images/rock.png' },
+      { name: 'asteroid', url: 'assets/images/asteroid.png' },
+      { name: 'wall', url: 'assets/images/wall.png' }
+    ];
 
-      // PIXI v7+ 使用 Assets.load (如果你是用 v7)
-      // 但為了相容性與簡單起見，我們用簡單的方式逐一加載
-      
-      const loader = PIXI.Assets; // v7 API
+    const loader = PIXI.Assets;
 
-      const promises = Object.entries(assets).map(([key, path]) => {
-        return loader.load(path).then(texture => {
-            this.textures.set(key, texture);
-            console.log(`[TextureManager] Loaded: ${key}`);
-        }).catch(err => {
-            console.warn(`[TextureManager] Failed to load ${path}, using fallback.`);
-        });
-      });
-
-      Promise.all(promises).then(() => {
-        console.log('[TextureManager] All assets loaded.');
-        resolve();
-      });
-    });
+    for (const asset of assets) {
+      try {
+        const texture = await loader.load(asset.url);
+        this.textures.set(asset.name, texture);
+        console.log(`[TextureManager] Loaded: ${asset.name}`);
+      } catch (e) {
+        console.error(`[TextureManager] Failed to load ${asset.name}:`, e);
+      }
+    }
+    
+    console.log("[TextureManager] All assets loaded.");
   }
 
-  get(key) {
-    return this.textures.get(key) || this.defaultTexture;
+  get(name) {
+    return this.textures.get(name) || PIXI.Texture.WHITE;
   }
 }
 

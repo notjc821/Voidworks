@@ -24,24 +24,30 @@ class Player extends Entity {
     this.speed = 150; // 移動速度
   }
 
-  // [補回] 處理輸入控制 (WASD + 滑鼠)
+  // 處理輸入控制 (WASD + 滑鼠)
   applyInput(input) {
     if (this.isDead) {
-        this.body.velocity = [0, 0];
+        this.body.velocity[0] = 0;
+        this.body.velocity[1] = 0;
         return;
     }
 
-    // 重置速度
-    this.body.velocity[0] = 0;
-    this.body.velocity[1] = 0;
+    let vx = 0;
+    let vy = 0;
+    if (input.up) vy -= 1;
+    if (input.down) vy += 1;
+    if (input.left) vx -= 1;
+    if (input.right) vx += 1;
 
-    // 根據輸入設定速度
-    if (input.up) this.body.velocity[1] = -this.speed;
-    if (input.down) this.body.velocity[1] = this.speed;
-    if (input.left) this.body.velocity[0] = -this.speed;
-    if (input.right) this.body.velocity[0] = this.speed;
+    if (vx !== 0 && vy !== 0) {
+        const length = Math.sqrt(vx * vx + vy * vy);
+        vx /= length;
+        vy /= length;
+    }
 
-    // 設定角度
+    this.body.velocity[0] = vx * this.speed;
+    this.body.velocity[1] = vy * this.speed;
+
     this.body.angle = input.mouseAngle;
   }
 
@@ -81,10 +87,9 @@ class Player extends Entity {
     this.isDead = true;
     console.log(`[Game] Player ${this.name} died.`);
     
-    // 停止移動
-    this.body.velocity = [0, 0];
+    this.body.velocity[0] = 0;
+    this.body.velocity[1] = 0;
 
-    // 3秒後重生
     setTimeout(() => this.respawn(), 3000);
   }
 
@@ -95,9 +100,10 @@ class Player extends Entity {
     this.health = this.maxHealth;
     this.oxygen = this.maxOxygen;
     
-    // 重置物理位置
-    this.body.position = [0, 0];
-    this.body.velocity = [0, 0];
+    this.body.position[0] = 0;
+    this.body.position[1] = 0;
+    this.body.velocity[0] = 0;
+    this.body.velocity[1] = 0;
     this.body.angularVelocity = 0;
     
     console.log(`[Game] Player ${this.name} respawned.`);

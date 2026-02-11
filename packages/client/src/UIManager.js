@@ -3,65 +3,116 @@ const { Constants } = CommonPkg.default || CommonPkg;
 
 class UIManager {
   constructor() {
-    this.hotbarSlots = [];
+    this.hpBar = document.getElementById('hp-bar');
+    this.oxygenBar = document.getElementById('oxygen-bar');
+    this.debugInfo = document.getElementById('debug-info');
+    this.hotbarContainer = document.getElementById('hotbar-container');
+    
     this.initHotbar();
   }
 
   initHotbar() {
-    const container = document.getElementById('hotbar-container');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'slot';
-        slot.id = `slot-${i}`;
-        slot.innerHTML = `<span style="position:absolute; top:2px; left:4px; font-size:10px; color:#aaa">${i+1}</span>`;
-        container.appendChild(slot);
-        this.hotbarSlots.push(slot);
+    this.hotbarContainer.innerHTML = '';
+    const slotCount = Constants.UI.INVENTORY_WIDTH || 9; 
+
+    for (let i = 0; i < slotCount; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.index = i;
+      if (i === 0) slot.classList.add('active');
+      
+      const key = document.createElement('span');
+      key.className = 'key';
+      key.innerText = i + 1;
+      slot.appendChild(key);
+      
+      this.hotbarContainer.appendChild(slot);
     }
   }
 
-  updateStats(fps, myPlayerEntity) {
-    const fpsEl = document.getElementById('debug-info');
-    if (fpsEl) fpsEl.innerText = `${Math.round(fps)} FPS`;
+  updateInventory(itemsMap) {
+    if (!this.hotbarContainer) return;
 
-    // 更新血條與氧氣條
-    if (myPlayerEntity) {
-        const hpPercent = (myPlayerEntity.health / myPlayerEntity.maxHealth) * 100;
-        const o2Percent = (myPlayerEntity.oxygen / myPlayerEntity.maxOxygen) * 100;
+    const slots = this.hotbarContainer.getElementsByClassName('slot');
+    const slotCount = Constants.UI?.INVENTORY_WIDTH || 9;
 
-        const hpBar = document.getElementById('health-bar');
-        const o2Bar = document.getElementById('oxygen-bar');
-
-        if (hpBar) hpBar.style.width = `${Math.max(0, hpPercent)}%`;
-        if (o2Bar) o2Bar.style.width = `${Math.max(0, o2Percent)}%`;
-    }
-  }
-
-  updateInventory(items) {
-    this.hotbarSlots.forEach(slot => {
-        const num = slot.querySelector('span').innerText;
-        slot.innerHTML = `<span style="position:absolute; top:2px; left:4px; font-size:10px; color:#aaa">${num}</span>`;
-    });
-
-    let index = 0;
-    for (const [id, count] of Object.entries(items)) {
-        if (index >= this.hotbarSlots.length) break;
-
-        let iconName = 'rock'; 
-        if (id == Constants.Items.COPPER_ORE) iconName = 'asteroid';
-        if (id == Constants.Items.IRON_ORE) iconName = 'wall';
+    // 先清空所有快捷欄的圖示與數量
+    for (let i = 0; i < slotCount; i++) {
+        if (!slots[i]) continue;
+        const slot = slots[i];
         
-        const imgPath = `/assets/images/${iconName}.png`;
-
-        const slot = this.hotbarSlots[index];
-        slot.innerHTML += `
-            <img src="${imgPath}" onerror="this.style.display='none'">
-            <div class="count">${count}</div>
-        `;
-        index++;
+        const existingImg = slot.querySelector('img');
+        const existingCount = slot.querySelector('.count');
+        if (existingImg) existingImg.remove();
+        if (existingCount) existingCount.remove();
+        
+        // 移除自訂屬性，準備重新填入
+        delete slot.dataset.itemId; 
     }
+
+    if (!itemsMap) return;
+
+    // 處理資料格式相容 (Map 或 Object)
+    const entries = itemsMap instanceof Map 
+        ? Array.from(itemsMap.entries()) 
+        : Object.entries(itemsMap);
+
+    // 過濾出數量 > 0 的物品
+    const validItems = entries.filter(([id, count]) => count > 0);
+
+    // 依序填入格子 (最多填滿 slotCount 格)
+    for (let i = 0; i < Math.min(validItems.length, slotCount); i++) {
+        const [itemIdStr, count] = validItems[i];
+        const itemId = parseInt(itemIdStr);
+        const slot = slots[i];
+
+        if (!slot) continue;
+
+        // 根據 ItemID 決定圖示路徑
+        let imgSrc = 'assets/images/rock.png'; // 預設圖
+        
+        if (itemId === Constants.Items.STONE) {
+            imgSrc = 'assets/images/rock.png';
+        } else if (itemId === Constants.Items.COPPER_ORE) {
+            imgSrc = 'assets/images/asteroid.png'; // 如果你有 copper.png 就換掉
+        } else if (itemId === Constants.Items.IRON_ORE) {
+             imgSrc = 'assets/images/asteroid.png'; // 同上
+        } else if (itemId === Constants.Items.WALL_ITEM) { 
+            // 注意：如果在你的架構中，牆壁算作物品，它也會有 ID (2)
+            imgSrc = 'assets/images/wall.png';
+        }
+
+        // 產生圖片
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        slot.appendChild(img);
+
+        // 記錄該格裝了什麼 (給之後切換武器/建造用)
+        slot.dataset.itemId = itemId;
+
+        // 產生數量
+        if (count > 1) {
+            const countSpan = document.createElement('span');
+            countSpan.className = 'count';
+            countSpan.innerText = count;
+            slot.appendChild(countSpan);
+        }
+    }
+  }
+
+  updateStats(hp, maxHp, oxygen, maxOxygen) {
+    if (this.hpBar) {
+        const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
+        this.hpBar.style.width = `${pct}%`;
+    }
+    if (this.oxygenBar) {
+        const pct = Math.max(0, Math.min(100, (oxygen / maxOxygen) * 100));
+        this.oxygenBar.style.width = `${pct}%`;
+    }
+  }
+
+  updateDebugInfo(x, y, id) {
+    this.debugInfo.innerText = `Pos: (${Math.round(x)}, ${Math.round(y)}) | ID: ${id}`;
   }
 }
 

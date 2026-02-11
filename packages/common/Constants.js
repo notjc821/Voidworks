@@ -34,7 +34,8 @@ module.exports = {
   Items: {
     STONE: 1,
     COPPER_ORE: 2,
-    IRON_ORE: 3
+    IRON_ORE: 3,
+    WALL_ITEM: 4,
   },
 
   // [NEW] Tiles (Terrain)
@@ -46,7 +47,25 @@ module.exports = {
 
   // [NEW] Build Costs (EntityID -> { ItemID: Count })
   BuildCost: {
-    4: { 3: 5 }, // WALL costs 5 STONE
-    5: { 2: 1 }  // FLOOR costs 1 IRON_ORE (Example)
-  }
+    2: { 4: 1 }, 
+  },
+
+  UI: {
+    INVENTORY_WIDTH: 9,
+    INVENTORY_HEIGHT: 4,
+    SLOT_SIZE: 50,
+    PADDING: 10
+  },
+
+  RECIPES: [
+    { 
+      id: 1, 
+      result: 'Wall', 
+      rresultId: 4,   // [修正 1] 合成出來的是 WALL_ITEM (4)，不再是 2
+      count: 1, 
+      ingredients: { 1: 5 } // 需要 5 個 Stone (1)
+    }
+  ],
+
+  BUILD_DISTANCE: 200,
 };

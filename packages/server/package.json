@@ -13,7 +13,7 @@
     "open-simplex-noise": "^2.5.0",
     "p2": "^0.7.1",
     "simplex-noise": "^4.0.3",
-    "uuid": "^9.0.0",
+    "uuid": "^9.0.1",
     "uWebSockets.js": "uNetworking/uWebSockets.js#v20.33.0"
   },
   "devDependencies": {

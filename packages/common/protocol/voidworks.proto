@@ -7,12 +7,12 @@ message ClientPacket {
         Handshake handshake = 1;
         InputData input = 2;
         BuildRequest build = 3;
+        CraftRequest craft = 4;
     }
 }
 
 message ServerPacket {
     oneof packet {
-        // [重點] 這裡是 WelcomePacket，絕對不能是 HandshakeResponse
         WelcomePacket welcome = 1; 
         MapData mapData = 2;
         WorldState worldState = 3;
@@ -24,7 +24,6 @@ message Handshake {
     string name = 1;
 }
 
-// [重點] 這裡也必須是 WelcomePacket
 message WelcomePacket {
     string playerId = 1;
 }
@@ -43,6 +42,10 @@ message BuildRequest {
     float x = 2;
     float y = 3;
     float angle = 4;
+}
+
+message CraftRequest {
+    int32 recipeId = 1;
 }
 
 message MapData {
@@ -65,7 +68,6 @@ message EntityData {
     float health = 6;
     float maxHealth = 7;
     string name = 8;
-    // [重點] 必須包含這兩行
     float oxygen = 9;
     float maxOxygen = 10;
 }

@@ -1,64 +1,131 @@
-body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-#ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; 
+  background-color: #000; 
+  width: 100vw;
+  height: 100vh;
+}
 
-/* Stats Panel */
-#stats-panel { 
-    position: absolute; top: 10px; left: 10px; 
-    width: 200px;
-    background: rgba(0,0,0,0.5); 
-    padding: 10px; 
-    border-radius: 4px; 
-    pointer-events: none;
-    z-index: 10;
+canvas {
+  display: block;
+}
+
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#stats-panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 5px;
+  color: white;
+  pointer-events: auto; 
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.stat-row span {
+  width: 30px;
+  font-weight: bold;
 }
 
 .bar-container {
-    width: 100%;
-    height: 20px;
-    background: #222;
-    border: 1px solid #111;
-    margin-bottom: 5px;
-    position: relative;
-    border-radius: 2px;
-    overflow: hidden;
+  width: 150px;
+  height: 10px;
+  background: #333;
+  border: 1px solid #555;
+  margin-left: 5px;
 }
 
-.bar-fill {
-    height: 100%;
-    transition: width 0.2s linear; /* 線性過渡，看起來比較順 */
+.bar {
+  height: 100%;
+  width: 100%;
+  transition: width 0.2s;
 }
 
-.bar-text {
-    position: absolute;
-    top: 0; left: 5px;
-    font-size: 12px;
-    line-height: 20px;
-    color: white;
-    text-shadow: 1px 1px 0 #000;
-    font-weight: bold;
-    z-index: 2;
+#hp-bar { background: #ff4444; }
+#oxygen-bar { background: #44aaff; }
+
+#debug-info {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #aaa;
 }
 
-/* Interaction */
 #interaction-prompt {
-    position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.7); color: white; padding: 10px 20px; border-radius: 20px;
-    font-size: 18px; transition: opacity 0.2s;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 20px;
+  text-shadow: 1px 1px 2px black;
+  display: none;
 }
-.hidden { opacity: 0; }
 
-/* Hotbar */
 #hotbar-container {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px;
-    pointer-events: auto;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 5px;
+  border-radius: 5px;
+  pointer-events: auto;
 }
 
 .slot {
-    width: 50px; height: 50px; background: rgba(255,255,255,0.1); border: 2px solid #444;
-    display: flex; align-items: center; justify-content: center; position: relative;
-    color: white; font-weight: bold; cursor: pointer;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid #555;
+  margin: 0 2px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.slot img { width: 32px; height: 32px; image-rendering: pixelated; }
-.slot .count { position: absolute; bottom: 2px; right: 4px; font-size: 12px; text-shadow: 1px 1px 0 #000; }
+.slot.active {
+  border-color: #ffff00;
+  background: rgba(255, 255, 0, 0.1);
+}
+
+.slot img {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+
+.slot .key {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 10px;
+  color: #aaa;
+}
+
+.slot .count {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 #000;
+}

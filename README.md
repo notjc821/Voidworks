@@ -122,7 +122,7 @@ npm run dev:client
 ### Modifying Communication Protocols (.proto)
 
 If you modify `packages/common/protocol/voidworks.proto`, you must regenerate the JavaScript definition files.
-> **⚠️ Important:** After modifying the Protocol, perform a **Hard Reload** in your browser. Otherwise, the client may use outdated definitions, causing decoding errors.
+> **⚠️ Important:** After modifying the Protocol, perform a **Hard Reload** in your browser. Otherwise, the client may use outdated definitions, causing decoding errors. And make sure you have modify `packages\client\public\protocol\voidworks.proto` too! 
 
 ### Collaboration Rules
 
@@ -141,10 +141,15 @@ If you modify `packages/common/protocol/voidworks.proto`, you must regenerate th
 > * Select **"Empty Cache and Hard Reload"**.
 
 **Q2: Cannot see other players or asteroids?**
-> **A2:** Check `maxPayloadLength` in `packages/server/src/Server.js` and ensure it is set to `1024 * 1024` (1MB).
+> **A2:** Check `maxPayloadLength` in `packages/server/src/Server.js` and ensure it is set to `1024 * 1024` (1MB) or higher.
 
 **Q3: `npm run dev` error: command not found?**
 > **A3:** Ensure you have run `npm install`. This automatically installs the required `concurrently` package.
 
 **Q4: `[SERVER] Address already in use`?**
 > **A4:** The server port (8080) is occupied. You likely have another server instance running in a different terminal. Close it first.
+
+**Q5: Black screen (void) upon entering the game and see console has error due to UIManager?**
+> **A1:** Go /voidworks
+> * "rm -rf packages/client/node_modules/.vite" ,and then "npm run dev"
+> * "npm run dew"
