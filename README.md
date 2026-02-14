@@ -152,4 +152,3 @@ If you modify `packages/common/protocol/voidworks.proto`, you must regenerate th
 **Q5: Black screen (void) upon entering the game and see console has error due to UIManager?**
 > **A1:** Go /voidworks
 > * "rm -rf packages/client/node_modules/.vite" ,and then "npm run dev"
-> * "npm run dew"

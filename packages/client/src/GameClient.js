@@ -1,12 +1,14 @@
+import * as PIXI from 'pixi.js';
 import * as CommonPkg from '@voidworks/common';
 import Renderer from './Renderer';
-import UIManager from './UIManager';
+import InputController from './InputController';
+import InventoryManager from './InventoryManager';
 import AudioManager from './AudioManager';
+import UIManager from './UIManager'; 
 import TextureManager from './TextureManager';
-import InventoryManager from './InventoryManager'; // [重要] 引入背包管理器
 
-// 處理 Monorepo 的 Common 包引用
-const { Constants, Protocol } = CommonPkg.default || CommonPkg;
+// 處理 CommonJS/ESM 兼容性
+const { Protocol, Constants } = CommonPkg.default || CommonPkg;
 
 class GameClient {
   constructor() {
@@ -14,70 +16,76 @@ class GameClient {
     this.connected = false;
     this.myPlayerId = null;
 
-    // 輸入狀態
     this.input = {
-      up: false,
-      down: false,
-      left: false,
-      right: false,
+      up: false, down: false, left: false, right: false,
       mouseAngle: 0,
       mouseScreenX: 0,
       mouseScreenY: 0,
-      isShooting: false
+      isShooting: false,
+      selectedSlot: 0 
     };
 
-    // 建造模式狀態
     this.buildMode = false;
     this.selectedBuildType = Constants.Entities.WALL; 
-
     this.lastTime = 0;
+
+    this.loadedChunks = new Set();
+    this.currentChunkX = null;
+    this.currentChunkY = null;
   }
 
   async init() {
-    console.log("[Client] System starting...");
+    console.log('[Client] System starting...');
 
-    // 1. 載入資源 (協議/圖片/音效)
-    // 注意：根據你的 Protocol 實作，如果需要 load 就保留，不需要則移除
-    if (Protocol.load) await Protocol.load(); 
-    await TextureManager.load();
-    await AudioManager.load();
-
-    console.log("[Client] Resources loaded.");
-
-    // 2. 初始化渲染器
+    // [修正] 1. 最優先載入 Protocol，否則無法通訊
+    try {
+        await Protocol.load();
+        console.log('[Client] Protocol loaded.');
+    } catch (e) {
+        console.error('[Client] FATAL: Failed to load protocol:', e);
+        alert('Failed to load game protocol. Check console.');
+        return;
+    }
+    
+    // 2. 初始化渲染器與介面
     this.renderer = new Renderer(this);
-
-    // 3. 初始化背包管理器 (傳入 PIXI app 和 GameClient)
-    this.inventoryManager = new InventoryManager(this.renderer.app, this);
-
-    // 4. 設定輸入監聽
+    
+    // 3. 初始化背包 (需等待 PIXI 初始化完成)
+    this.inventoryManager = InventoryManager; 
+    await this.inventoryManager.init(this);
+    
+    // 4. 載入素材與音效
+    await AudioManager.load();
+    // 這裡通常還會有 TextureManager.load()，建議補上
+    await TextureManager.load(); 
+    
     this.setupInput();
-
-    // 5. 連線伺服器
+    
+    console.log('[Client] Resources loaded. Connecting...');
     this.connect();
-
-    // 6. 啟動客戶端遊戲迴圈
-    this.lastTime = performance.now();
+    
     this.loop();
   }
 
   connect() {
+    if (this.connected) return;
+    
+    const port = (Constants.Network && Constants.Network.DEFAULT_PORT) || Constants.DEFAULT_PORT || 8080;
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.hostname;
-    const port = Constants.DEFAULT_PORT || 8080;
     const url = `${protocol}://${host}:${port}`;
-
+    
     console.log(`[Client] Connecting to ${url}...`);
+    
     this.ws = new WebSocket(url);
     this.ws.binaryType = 'arraybuffer';
-
+    
     this.ws.onopen = () => {
-      console.log("[Client] WebSocket Connected!");
+      console.log('[Client] WebSocket Connected!');
       this.connected = true;
-      
-      // 發送握手
-      const buffer = Protocol.encodeClientPacket({ handshake: { name: "Player" } });
-      this.ws.send(buffer);
+      // Protocol 現在已經載入完成，可以安全發送了
+      const handshake = { handshake: { name: `Player_${Math.floor(Math.random()*1000)}` } };
+      this.ws.send(Protocol.encodeClientPacket(handshake));
     };
 
     this.ws.onmessage = (event) => {
@@ -85,52 +93,114 @@ class GameClient {
     };
 
     this.ws.onclose = () => {
-      console.log("[Client] Disconnected.");
+      console.log('[Client] Disconnected.');
       this.connected = false;
+      setTimeout(() => this.connect(), 3000);
+    };
+    
+    this.ws.onerror = (err) => {
+        console.error('[Client] Socket error:', err);
     };
   }
 
-  handleMessage(buffer) {
+  // ... (handleMessage, checkChunkUpdate, requestSurroundingChunks, sendChunkRequest 等方法保持不變) ...
+  // 請確保不要把這些方法刪掉了，只需替換上面的 init 與 connect 即可，或保留原樣
+  
+  handleMessage(data) {
     try {
-      const uint8Buffer = new Uint8Array(buffer);
-      const message = Protocol.decodeServerPacket(uint8Buffer);
-      
-      if (message.packet === 'welcome') {
-        console.log(`[Client] Joined Game. My ID: ${message.welcome.playerId}`);
-        this.myPlayerId = message.welcome.playerId;
+      const buffer = new Uint8Array(data);
+      const msg = Protocol.decodeServerPacket(buffer);
+
+      if (msg.welcome) {
+        this.myPlayerId = msg.welcome.playerId;
+        console.log(`[Client] Joined as ${this.myPlayerId}`);
+      } 
+      else if (msg.chunkData) {
+        this.renderer.updateChunk(msg.chunkData);
       }
-      else if (message.packet === 'mapData') {
-        console.log(`[Client] Map Data: ${message.mapData.width}x${message.mapData.height}`);
-        this.renderer.initMap(message.mapData);
-      }
-      else if (message.packet === 'worldState') {
-        // 確認 renderer 存在才更新 (避免還沒 init 完成就收到封包)
-        if (this.renderer) {
-            this.renderer.syncEntities(message.worldState.entities);
+      else if (msg.worldState) {
+        this.renderer.syncEntities(msg.worldState.entities);
+        this.checkChunkUpdate();
+      } 
+      else if (msg.inventory) {
+        if (this.inventoryManager) {
+            this.inventoryManager.updateInventory(msg.inventory.items);
+        }
+        if (UIManager) {
+            UIManager.updateInventory(msg.inventory.items);
         }
       }
-      else if (message.packet === 'inventory') {
-        console.log(`[Client] Inventory Updated`);
-        // 更新快捷列 UI
-        if (UIManager) UIManager.updateInventory(message.inventory.items);
-        // 更新背包視窗內容
-        if (this.inventoryManager) this.inventoryManager.updateInventory(message.inventory.items);
-        // 播放音效
-        AudioManager.play('hit'); 
-      }
-
     } catch (e) {
-      console.error("[Client] Decode error:", e);
+      console.error('[Client] Decode error:', e);
     }
   }
 
+  checkChunkUpdate() {
+      const playerSprite = this.renderer.entities.get(this.myPlayerId);
+      if (!playerSprite) return;
+
+      const TILE = Constants.World.TILE_SIZE;
+      const CHUNK = Constants.World.CHUNK_SIZE || 32;
+      const fullSize = TILE * CHUNK;
+
+      const cx = Math.floor(playerSprite.x / fullSize);
+      const cy = Math.floor(playerSprite.y / fullSize);
+
+      if (cx !== this.currentChunkX || cy !== this.currentChunkY) {
+          this.currentChunkX = cx;
+          this.currentChunkY = cy;
+          this.requestSurroundingChunks(cx, cy);
+          
+          this.unloadDistantChunks(cx, cy);
+      }
+  }
+
+  requestSurroundingChunks(cx, cy) {
+      const radius = 1; 
+      for (let y = cy - radius; y <= cy + radius; y++) {
+          for (let x = cx - radius; x <= cx + radius; x++) {
+              const key = `${x},${y}`;
+              if (!this.loadedChunks.has(key)) {
+                  this.sendChunkRequest(x, y);
+                  this.loadedChunks.add(key);
+              }
+          }
+      }
+  }
+
+  unloadDistantChunks(cx, cy) {
+      const UNLOAD_DIST = 3; 
+      
+      for (const key of Array.from(this.loadedChunks)) {
+          const [xStr, yStr] = key.split(',');
+          const chunkX = parseInt(xStr);
+          const chunkY = parseInt(yStr);
+          
+          const dx = Math.abs(chunkX - cx);
+          const dy = Math.abs(chunkY - cy);
+          
+          if (dx > UNLOAD_DIST || dy > UNLOAD_DIST) {
+              this.loadedChunks.delete(key);
+              this.renderer.removeChunk(key);
+          }
+      }
+  }
+
+  sendChunkRequest(cx, cy) {
+      if (!this.connected) return;
+      const packet = {
+          requestChunk: {
+              chunkX: cx,
+              chunkY: cy
+          }
+      };
+      this.ws.send(Protocol.encodeClientPacket(packet));
+  }
+
   setupInput() {
-    // 鍵盤按下
     document.addEventListener('keydown', (e) => {
-      // [Phase 11] 按 E 切換背包開關
       if (e.code === 'KeyE') {
           this.inventoryManager.toggle();
-          // 如果打開背包，自動關閉建造模式
           if (this.inventoryManager.isOpen) {
               this.buildMode = false;
               this.renderer.setBuildMode(false);
@@ -138,26 +208,25 @@ class GameClient {
           return;
       }
 
-      // 只有在背包關閉時，才允許其他操作
+      if (e.key >= '1' && e.key <= '9') {
+          const slotIndex = parseInt(e.key) - 1;
+          this.input.selectedSlot = slotIndex;
+          if (UIManager) UIManager.selectSlot(slotIndex);
+      }
+
       if (!this.inventoryManager.isOpen) {
         if (e.code === 'KeyW') this.input.up = true;
         if (e.code === 'KeyS') this.input.down = true;
         if (e.code === 'KeyA') this.input.left = true;
         if (e.code === 'KeyD') this.input.right = true;
         
-        // B 鍵：切換建造模式
         if (e.code === 'KeyB') {
           this.buildMode = !this.buildMode;
-          this.renderer.setBuildMode(this.buildMode, this.selectedBuildType);
-          AudioManager.play('build'); 
+          this.renderer.setBuildMode(this.buildMode, Constants.Entities.WALL);
         }
-
-        // 數字鍵：切換物品 (暫時範例)
-        if (e.key === '1') this.selectedBuildType = Constants.Entities.WALL;
       }
     });
 
-    // 鍵盤放開
     document.addEventListener('keyup', (e) => {
       if (e.code === 'KeyW') this.input.up = false;
       if (e.code === 'KeyS') this.input.down = false;
@@ -165,24 +234,19 @@ class GameClient {
       if (e.code === 'KeyD') this.input.right = false;
     });
 
-    // 滑鼠移動
     document.addEventListener('mousemove', (e) => {
       this.input.mouseScreenX = e.clientX;
       this.input.mouseScreenY = e.clientY;
-
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
       this.input.mouseAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
     });
 
-    // 滑鼠點擊
     document.addEventListener('mousedown', (e) => {
-      // 確保音效引擎啟動
       if (AudioManager.resume) AudioManager.resume();
+      if (this.inventoryManager.isOpen) return;
 
-      if (this.inventoryManager.isOpen) return; // 背包打開時不處理
-
-      if (e.button === 0) { // 左鍵
+      if (e.button === 0) { 
         if (this.buildMode) {
             this.sendBuildRequest();
         } else {
@@ -198,68 +262,57 @@ class GameClient {
 
   sendInput() {
     if (!this.connected) return;
-
-    // 如果背包打開中，強制傳送靜止訊號
     if (this.inventoryManager.isOpen) {
         const idleInput = {
             up: false, down: false, left: false, right: false,
             mouseAngle: this.input.mouseAngle,
-            isShooting: false
+            isShooting: false,
+            selectedSlot: this.input.selectedSlot
         };
         const buffer = Protocol.encodeClientPacket({ input: idleInput });
         this.ws.send(buffer);
         return;
     }
-
     const buffer = Protocol.encodeClientPacket({ input: this.input });
     this.ws.send(buffer);
   }
 
-  // [修正] 建造請求：使用鬼影座標確保對齊
   sendBuildRequest() {
-    if (!this.connected) return;
-    
-    // 使用 Renderer 算出來的精準鬼影座標
-    const ghost = this.renderer.ghostSprite;
-    
-    // 如果鬼影沒顯示，或者 Renderer 標記為不合法 (太遠)，就不發送
-    if (!ghost || !ghost.visible || this.renderer.isValidBuild === false) return;
-
-    const buffer = Protocol.encodeClientPacket({
-      build: {
-        type: this.selectedBuildType,
-        x: ghost.x, // 這裡確保了是 "格子中心"
-        y: ghost.y, // 這裡確保了是 "格子中心"
-        angle: 0
-      }
-    });
-    this.ws.send(buffer);
+      if (!this.renderer.isValidBuild) return;
+      
+      const input = this.input;
+      const mouseX = input.mouseScreenX;
+      const mouseY = input.mouseScreenY;
+      
+      const worldPos = this.renderer.toWorldCoords(mouseX, mouseY);
+      
+      const packet = {
+          build: {
+              type: this.selectedBuildType,
+              x: worldPos.x,
+              y: worldPos.y,
+              angle: 0
+          }
+      };
+      this.ws.send(Protocol.encodeClientPacket(packet));
+      AudioManager.play('build');
   }
 
-  // 發送合成請求
   sendCraftRequest(recipeId) {
-    if (!this.connected) return;
-    
-    console.log(`[Client] Sending Craft Request: Recipe #${recipeId}`);
-    const buffer = Protocol.encodeClientPacket({ 
-        craft: { recipeId } 
-    });
-    this.ws.send(buffer);
+      if (!this.connected) return;
+      const packet = { craft: { recipeId } };
+      this.ws.send(Protocol.encodeClientPacket(packet));
   }
 
   loop() {
-    const now = performance.now();
+    requestAnimationFrame(() => this.loop());
+    
+    const now = Date.now();
     const dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
 
-    if (this.renderer) {
-      this.renderer.update(dt);
-    }
-
-    // 持續發送輸入 (每幀)
     this.sendInput();
-
-    requestAnimationFrame(() => this.loop());
+    this.renderer.update(dt);
   }
 }
 

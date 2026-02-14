@@ -1,31 +1,32 @@
 const Entity = require('./Entity');
-const Constants = require('../../../common/Constants');
-const p2 = require('p2');
+const { Constants } = require('@voidworks/common');
 
 class Wall extends Entity {
   constructor(id, x, y) {
-    super(id, null, x, y, 16); // 半徑 16 (32x32 格子的一半)
+    super(id, x, y);
     this.type = Constants.Entities.WALL;
-
-    // 牆壁是靜態的，質量為 0，不會被推動
-    this.body.mass = 0;
-    this.body.type = p2.Body.STATIC;
+    this.health = 100;
+    this.maxHealth = 100;
     
-    // 將圓形碰撞體改為方形，這樣比較像牆壁
-    this.body.removeShape(this.shape);
-    this.shape = new p2.Box({ width: 32, height: 32 });
-    this.body.addShape(this.shape);
+    // 牆壁是靜態的
+    this.body.type = 0; // p2.Body.STATIC (0) -> 改成直接寫 0 避免依賴引用問題
+    this.body.mass = 0;
   }
 
+  // 如果 Wall 沒有特殊的數據要傳，可以繼承 Entity.serialize
+  // 但為了保險，我們這裡明確覆寫並轉型 ID
   serialize() {
     return {
-      id: this.id,
+      id: String(this.id), 
       type: this.type,
       x: this.body.position[0],
       y: this.body.position[1],
       angle: this.body.angle,
-      health: 100,
-      maxHealth: 100
+      health: this.health,
+      maxHealth: this.maxHealth,
+      name: "",
+      oxygen: 0,
+      maxOxygen: 0
     };
   }
 }

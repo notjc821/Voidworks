@@ -7,8 +7,12 @@ class UIManager {
     this.oxygenBar = document.getElementById('oxygen-bar');
     this.debugInfo = document.getElementById('debug-info');
     this.hotbarContainer = document.getElementById('hotbar-container');
+
+    this.selectedSlotIndex = 0;
     
-    this.initHotbar();
+    if (this.hotbarContainer) {
+        this.initHotbar();
+    }
   }
 
   initHotbar() {
@@ -30,6 +34,17 @@ class UIManager {
     }
   }
 
+  selectSlot(index) {
+      if (!this.hotbarContainer) return;
+      this.selectedSlotIndex = index;
+      const slots = this.hotbarContainer.getElementsByClassName('slot');
+      
+      for (let i = 0; i < slots.length; i++) {
+          if (i === index) slots[i].classList.add('active');
+          else slots[i].classList.remove('active');
+      }
+  }
+
   updateInventory(itemsMap) {
     if (!this.hotbarContainer) return;
 
@@ -45,8 +60,6 @@ class UIManager {
         const existingCount = slot.querySelector('.count');
         if (existingImg) existingImg.remove();
         if (existingCount) existingCount.remove();
-        
-        // 移除自訂屬性，準備重新填入
         delete slot.dataset.itemId; 
     }
 
@@ -69,18 +82,21 @@ class UIManager {
         if (!slot) continue;
 
         // 根據 ItemID 決定圖示路徑
-        let imgSrc = 'assets/images/rock.png'; // 預設圖
+        let imgSrc = 'assets/images/Stone.png';
         
-        if (itemId === Constants.Items.STONE) {
-            imgSrc = 'assets/images/rock.png';
-        } else if (itemId === Constants.Items.COPPER_ORE) {
-            imgSrc = 'assets/images/asteroid.png'; // 如果你有 copper.png 就換掉
-        } else if (itemId === Constants.Items.IRON_ORE) {
-             imgSrc = 'assets/images/asteroid.png'; // 同上
-        } else if (itemId === Constants.Items.WALL_ITEM) { 
-            // 注意：如果在你的架構中，牆壁算作物品，它也會有 ID (2)
-            imgSrc = 'assets/images/wall.png';
-        }
+        // 工具
+        if (itemId === Constants.Items.PICKAXE) imgSrc = 'assets/images/Pickaxe.png';
+        else if (itemId === Constants.Items.WELDER) imgSrc = 'assets/images/Stone.png'; // 暫時沒有 Welder 圖，先用 stone.png
+        else if (itemId === Constants.Items.GRAPPLE) imgSrc = 'assets/images/Stone.png'; // 暫時沒有 Grapple 圖，先用 stone.png
+        
+        // 資源
+        else if (itemId === Constants.Items.STONE) imgSrc = 'assets/images/Stone.png';
+        else if (itemId === Constants.Items.COPPER_ORE) imgSrc = 'assets/images/Copper Ore.png';
+        else if (itemId === Constants.Items.IRON_ORE) imgSrc = 'assets/images/Iron Ore.png';
+        else if (itemId === Constants.Items.WALL_ITEM) imgSrc = 'assets/images/wall.png';
+        
+        // 預設
+        else imgSrc = 'assets/images/Stone.png';
 
         // 產生圖片
         const img = document.createElement('img');
@@ -98,6 +114,9 @@ class UIManager {
             slot.appendChild(countSpan);
         }
     }
+
+    // 保持選中狀態
+    this.selectSlot(this.selectedSlotIndex);
   }
 
   updateStats(hp, maxHp, oxygen, maxOxygen) {

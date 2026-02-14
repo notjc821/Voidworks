@@ -8,15 +8,17 @@ message ClientPacket {
         InputData input = 2;
         BuildRequest build = 3;
         CraftRequest craft = 4;
+        RequestChunk requestChunk = 5;
     }
 }
 
 message ServerPacket {
     oneof packet {
-        WelcomePacket welcome = 1; 
-        MapData mapData = 2;
+        WelcomePacket welcome = 1;
+        // MapData mapData = 2; // [棄用] 舊的全地圖封包
         WorldState worldState = 3;
         InventoryUpdate inventory = 4;
+        ChunkData chunkData = 5;
     }
 }
 
@@ -35,6 +37,7 @@ message InputData {
     bool right = 4;
     float mouseAngle = 5;
     bool isShooting = 6;
+    int32 selectedSlot = 7;
 }
 
 message BuildRequest {
@@ -48,10 +51,15 @@ message CraftRequest {
     int32 recipeId = 1;
 }
 
-message MapData {
-    int32 width = 1;
-    int32 height = 2;
-    repeated int32 tiles = 3;
+message RequestChunk {
+    int32 chunkX = 1;
+    int32 chunkY = 2;
+}
+
+message ChunkData {
+    int32 chunkX = 1;
+    int32 chunkY = 2;
+    repeated int32 tiles = 3; // 32x32 的一維陣列
 }
 
 message WorldState {

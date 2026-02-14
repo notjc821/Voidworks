@@ -1,31 +1,32 @@
 const Entity = require('./Entity');
-const Constants = require('../../../common/Constants');
+const { Constants } = require('@voidworks/common');
 
 class Player extends Entity {
-  constructor(id, game, name) {
-    // 隨機出生點 (-200 到 200)
-    const startX = (Math.random() - 0.5) * 400;
-    const startY = (Math.random() - 0.5) * 400;
-    
-    super(id, game.world, startX, startY, 16); // 半徑 16
-    this.game = game;
-
+  constructor(id, x, y) {
+    super(id, x, y);
     this.type = Constants.Entities.PLAYER;
-    this.name = name || "Unknown";
     
-    // --- 生存數值 ---
+    this.name = "Unknown";
+    this.inventory = new Map();
+    
+    this.health = 100;
     this.maxHealth = 100;
-    this.health = this.maxHealth;
-
+    this.oxygen = 100;
     this.maxOxygen = 100;
-    this.oxygen = this.maxOxygen;
-    
     this.isDead = false;
-    this.speed = 150; // 移動速度
+    
+    this.speed = 150;
+    this.lastActionTime = 0;
+
+    this.inputState = {
+        up: false, down: false, left: false, right: false,
+        mouseAngle: 0, isShooting: false, selectedSlot: 0
+    };
   }
 
-  // 處理輸入控制 (WASD + 滑鼠)
   applyInput(input) {
+    if (!input) return;
+
     if (this.isDead) {
         this.body.velocity[0] = 0;
         this.body.velocity[1] = 0;
@@ -52,66 +53,37 @@ class Player extends Entity {
   }
 
   update(dt) {
-    if (this.isDead) return;
-
-    // 1. 氧氣自然消耗 (每秒 2 點)
-    this.oxygen -= 2 * dt;
-    
-    // 2. 缺氧扣血
-    if (this.oxygen <= 0) {
-        this.oxygen = 0;
-        this.damage(10 * dt); // 缺氧每秒扣 10 血
-    } else {
-        // 有氧氣時緩慢回血
-        if (this.health < this.maxHealth) {
-            this.health += 2 * dt;
-        }
-    }
-
-    // 確保數值不溢出
-    if (this.oxygen > this.maxOxygen) this.oxygen = this.maxOxygen;
-    if (this.health > this.maxHealth) this.health = this.maxHealth;
+      if (this.health < this.maxHealth) {
+          this.health = Math.min(this.maxHealth, this.health + dt * 1);
+      }
   }
 
   damage(amount) {
-    if (this.isDead) return;
-    
-    this.health -= amount;
-    if (this.health <= 0) {
-        this.health = 0;
-        this.die();
-    }
+      this.health -= amount;
+      if (this.health <= 0) this.die();
   }
 
   die() {
     this.isDead = true;
     console.log(`[Game] Player ${this.name} died.`);
-    
     this.body.velocity[0] = 0;
     this.body.velocity[1] = 0;
-
     setTimeout(() => this.respawn(), 3000);
   }
 
   respawn() {
-    if (!this.game) return;
-
     this.isDead = false;
     this.health = this.maxHealth;
     this.oxygen = this.maxOxygen;
-    
     this.body.position[0] = 0;
     this.body.position[1] = 0;
     this.body.velocity[0] = 0;
     this.body.velocity[1] = 0;
-    this.body.angularVelocity = 0;
-    
-    console.log(`[Game] Player ${this.name} respawned.`);
   }
 
   serialize() {
     return {
-      id: this.id,
+      id: String(this.id), 
       type: this.type,
       x: this.body.position[0],
       y: this.body.position[1],

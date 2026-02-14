@@ -1,100 +1,68 @@
 const uWS = require('uWebSockets.js');
-const { Protocol } = require('@voidworks/common');
+const { Constants, Protocol } = require('@voidworks/common'); 
 const Game = require('./Game');
 
-const port = 8080;
+// 強制轉型 Port 為整數，防止字串導致的監聽失敗
+const port = parseInt(process.env.PORT || Constants.DEFAULT_PORT || 8080, 10);
 
 class Server {
   constructor() {
-    // 這裡只負責建立 Game 實例，不啟動迴圈
-    this.game = new Game(this);
-    this.clients = new Map(); // ws -> playerId
+    this.game = new Game();
+    this.app = uWS.App();
+    // 移除 this.sockets = new Map(); // 讓 Game.js 自己管理
+  }
 
-    this.app = uWS.App().ws('/*', {
+  start() {
+    this.app.ws('/*', {
       compression: uWS.SHARED_COMPRESSOR,
-      maxPayloadLength: 1024 * 1024,
-      idleTimeout: 60,
-
+      maxPayloadLength: 16 * 1024,
+      idleTimeout: 32,
+      
       open: (ws) => {
-        console.log('A WebSocket connected!');
-        ws.binaryType = 'arraybuffer';
+        console.log('Client connected');
+        ws.getUserData().id = null;
       },
-
+      
       message: (ws, message, isBinary) => {
-        if (!isBinary) return;
-        
         try {
-          const buffer = new Uint8Array(message);
-          const packet = Protocol.decodeClientPacket(buffer);
-          this.handlePacket(ws, packet);
-        } catch (e) {
-          console.error('Failed to decode packet:', e);
+            const buffer = new Uint8Array(message);
+            const clientMsg = Protocol.decodeClientPacket(buffer);
+            // 直接呼叫 Game 的處理函式
+            this.game.handleMessage(ws, clientMsg);
+        } catch(e) {
+            console.error('Decode error:', e);
         }
       },
-
+      
       close: (ws, code, message) => {
-        const playerId = this.clients.get(ws);
-        if (playerId) {
-          console.log(`Player ${playerId} disconnected`);
-          this.game.leave(playerId);
-          this.clients.delete(ws);
+        const userId = ws.getUserData().id;
+        if (userId) {
+            this.game.removePlayer(userId);
         }
       }
     }).listen(port, (token) => {
       if (token) {
-        console.log(`[VoidWorks] Server listening on port ${port}`);
+        console.log(`[Server] Listening on port ${port}`);
+        this.game.start();
       } else {
-        console.log(`[VoidWorks] Failed to listen to port ${port}`);
+        console.error(`[Server] Failed to listen to port ${port}.`);
+        // 備用方案：嘗試監聽 Localhost
+        this.app.listen('127.0.0.1', port, (token2) => {
+            if (token2) {
+                console.log(`[Server] Listening on 127.0.0.1:${port} (Fallback)`);
+                this.game.start();
+            } else {
+                console.error(`[Server] Fatal: Could not bind port ${port}. Is it already in use?`);
+                process.exit(1);
+            }
+        });
       }
     });
-
-    // 載入 Protocol 後，才啟動遊戲
-    Protocol.load().then(() => {
-        console.log('[VoidWorks] Protocol loaded.');
-        this.game.start(); 
-    });
-  }
-
-  handlePacket(ws, packet) {
-    if (packet.packet === 'handshake') {
-      const playerId = this.game.generateId();
-      const name = packet.handshake.name;
-      
-      this.clients.set(ws, playerId);
-      this.game.join(playerId, name);
-
-      this.send(playerId, 'welcome', { playerId });
-      this.send(playerId, 'mapData', this.game.mapData);
-    }
-    
-    const playerId = this.clients.get(ws);
-    if (playerId) {
-        if (packet.packet === 'input') {
-            this.game.handleInput(playerId, packet.input);
-        }
-        else if (packet.packet === 'build') {
-            this.game.handleBuild(playerId, packet.build);
-        }
-    }
-  }
-
-  send(playerId, type, payload) {
-    for (const [ws, id] of this.clients.entries()) {
-      if (id === playerId) {
-        const buffer = Protocol.encodeServerPacket({ [type]: payload });
-        ws.send(buffer, true);
-        break;
-      }
-    }
-  }
-
-  broadcast(type, payload) {
-    const buffer = Protocol.encodeServerPacket({ [type]: payload });
-    for (const ws of this.clients.keys()) {
-        ws.send(buffer, true);
-    }
   }
 }
 
-// [修正重點] 這裡要是匯出類別，而不是 new Server()
+if (require.main === module) {
+    new Server().start();
+}
+
 module.exports = Server;

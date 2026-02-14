@@ -6,8 +6,10 @@ const { Protocol } = require('@voidworks/common');
 async function init() {
   console.log('[System] Initializing VoidWorks Server...');
 
+  try {
   // 1. Load Protocol Buffers FIRST
   await Protocol.load();
+  console.log('[Common] Protocol Buffers loaded successfully.');
 
   // 2. Test Database Connection
   console.log('[System] Connecting to database...');
@@ -27,6 +29,12 @@ async function init() {
 
   // 3. Start Game Server
   const server = new Server();
-}
+  server.start(); 
+
+    } catch (error) {
+      console.error('[System] Fatal Error during startup:', error);
+      process.exit(1);
+    }
+  }
 
 init();
