@@ -4,11 +4,8 @@ class TextureManager {
   constructor() {
     this.textures = new Map();
     this.defaultTexture = PIXI.Texture.WHITE; // 預設白圖，避免崩潰
-
-    PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
-    if (PIXI.BaseTexture && PIXI.BaseTexture.defaultOptions) {
-        PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
-    }
+    
+    PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
   }
 
   async load() {
@@ -57,8 +54,10 @@ class TextureManager {
     const promises = [];
 
     for (const [key, filename] of Object.entries(assets)) {
-      // 使用 PIXI.Assets 載入圖片
       const loadPromise = PIXI.Assets.load(`assets/images/${filename}`).then(texture => {
+        if (texture.baseTexture) {
+             texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+        }
         this.textures.set(key, texture);
       }).catch(err => {
         console.error(`[TextureManager] Failed to load ${filename}:`, err);

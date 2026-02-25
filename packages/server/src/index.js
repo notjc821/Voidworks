@@ -9,7 +9,6 @@ async function init() {
   try {
   // 1. Load Protocol Buffers FIRST
   await Protocol.load();
-  console.log('[Common] Protocol Buffers loaded successfully.');
 
   // 2. Test Database Connection
   console.log('[System] Connecting to database...');
